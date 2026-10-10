@@ -1,0 +1,150 @@
+
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mein Finanzplaner</title>
+
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js für unsere Diagramme -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Unser JavaScript -->
+    <script src="script.js" defer></script>
+
+</head>
+<body>
+
+    <header>
+        <h1>Mein Finanzplaner</h1>
+        <p>Behalte deine Finanzen im Überblick</p>
+    </header>
+
+    <nav>
+        <button id="btn-dashboard1">
+            Aktuelle Finanzen
+        </button>
+        <button id="btn-dashboard2">
+            Analyse & Sparziele
+        </button>
+    </nav>
+
+    <!-- Dashboard 1 -->
+    <main id="dashboard1">
+        <h2>Aktuelle Finanzen</h2>
+
+        
+<section class="uebersicht">
+    <div class="karte">
+        <h3>Einnahmen</h3>
+        <p id="einnahmen">0,00 €</p>
+    </div>
+
+    <div class="karte">
+        <h3>Ausgaben</h3>
+        <p id="ausgaben">0,00 €</p>
+    </div>
+
+    <div class="karte">
+        <h3>Sparen & Investieren</h3>
+        <p id="sparen">0,00 €</p>
+    </div>
+
+    <div class="karte">
+        <h3>Frei verfügbar</h3>
+        <p id="restbetrag">0,00 €</p>
+    </div>
+</section>
+
+        <section>
+            <h3>Neue Einnahme oder Ausgabe</h3>
+
+            
+<form id="finanz-formular">
+
+    <label for="typ">Art:</label>
+    <select id="typ">
+        <option value="einnahme">Einnahme</option>
+        <option value="ausgabe">Ausgabe</option>
+        <option value="sparen">Sparen & Investieren</option>
+    </select>
+
+    <label for="betrag">Betrag (€):</label>
+    <input type="number" id="betrag"
+           min="0.01" step="0.01" required>
+
+    <label for="kategorie">Kategorie:</label>
+    <select id="kategorie" required></select>
+
+    <label for="eigene-kategorie" id="eigene-kategorie-label"
+           hidden>Eigene Kategorie:</label>
+    <input type="text" id="eigene-kategorie"
+           placeholder="Kategorie eingeben" hidden>
+
+    <label for="datum">Datum:</label>
+    <input type="date" id="datum" required>
+
+    <button type="submit">Eintrag speichern</button>
+
+</form>
+
+        </section>
+
+        <section>
+            <h3>Ausgaben nach Kategorien</h3>
+            <canvas id="kategorie-diagramm"></canvas>
+        </section>
+    </main>
+
+    <!-- Dashboard 2 -->
+    <main id="dashboard2" hidden>
+        <h2>Analyse & Sparziele</h2>
+
+        <section>
+            <h3>Ausgabenentwicklung</h3>
+
+            <button id="btn-3-monate">3 Monate</button>
+            <button id="btn-6-monate">6 Monate</button>
+
+            <canvas id="monats-diagramm"></canvas>
+        </section>
+
+        <section>
+            <h3>Mein Sparziel</h3>
+
+            <form id="sparziel-formular">
+                <label for="zielname">Bezeichnung:</label>
+                <input type="text" id="zielname" required>
+
+                <label for="zielbetrag">Zielbetrag (€):</label>
+                <input type="number" id="zielbetrag"
+                       min="0.01" step="0.01" required>
+
+                <label for="startbetrag">Bereits gespart (€):</label>
+                <input type="number" id="startbetrag"
+                       min="0" step="0.01" required>
+                <label for="monatlicher-sparbetrag">
+                    Monatlicher Sparbetrag (€):
+                </label>
+                <input
+
+                type="number"
+                id="monatlicher-sparbetrag"
+                min="0"
+                step="0.01"
+                required
+                >
+                       
+
+                <button type="submit">Sparziel speichern</button>
+            </form>
+
+            <h3>Meine Sparziele im Überblick</h3>
+            <div id="sparziel-liste"></div>
+
+        </section>
+
+    </main>
+
+</body>
+</html>
