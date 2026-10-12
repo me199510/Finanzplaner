@@ -362,3 +362,40 @@ section button:hover {
     line-height: 1.6;
     font-weight: bold;
 }
+
+/* Einzelne Einnahmen als Zeile darstellen */
+.eintrag-karte {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 18px 0;
+    border-bottom: 1px solid #d5e2d5;
+}
+
+/* Letzter Eintrag ohne Trennlinie */
+.eintrag-karte:last-child {
+    border-bottom: none;
+}
+
+/* Abstand zwischen Kategorie und Betrag */
+.eintrag-karte p {
+    margin: 8px 0 0;
+}
+
+/* Löschen-Button rechts */
+.loeschen-button {
+    width: auto;
+    flex-shrink: 0;
+    padding: 10px 18px;
+    background-color: #f5e8e6;
+    color: #963e39;
+    border: 1px solid #dfc5c1;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* Farbe beim Darüberfahren */
+.loeschen-button:hover {
+    background-color: #ead1cd;
+}

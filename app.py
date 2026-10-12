@@ -302,5 +302,120 @@ def sparziel_speichern():
     return {"status": "Sparziel gespeichert"}, 201
 
 
+# Alle gespeicherten Sparziele abrufen
+@app.route("/api/sparziele", methods=["GET"])
+def sparziele_laden():
+
+    verbindung = datenbank_verbinden()
+
+    sparziele = verbindung.execute(
+        """
+        SELECT id, bezeichnung, zielbetrag,
+               startbetrag, monatlicher_sparbetrag
+        FROM Sparziele
+        ORDER BY id
+        """
+    ).fetchall()
+
+    verbindung.close()
+
+    ergebnis = []
+
+    for sparziel in sparziele:
+        ergebnis.append({
+            "id": sparziel["id"],
+            "bezeichnung": sparziel["bezeichnung"],
+            "zielbetrag": sparziel["zielbetrag"] / 100,
+            "startbetrag": sparziel["startbetrag"] / 100,
+            "monatlicherSparbetrag": sparziel["monatlicher_sparbetrag"] / 100
+        })
+
+    return ergebnis
+
+
+
+# Einzelne Einnahme aus SQLite löschen
+@app.route("/api/einnahmen/<int:eintrag_id>", methods=["DELETE"])
+def einnahme_loeschen(eintrag_id):
+
+    verbindung = datenbank_verbinden()
+
+    ergebnis = verbindung.execute(
+        "DELETE FROM Einnahmen WHERE id = ?",
+        (eintrag_id,)
+    )
+
+    verbindung.commit()
+    anzahl = ergebnis.rowcount
+    verbindung.close()
+
+    if anzahl == 0:
+        return {"fehler": "Einnahme nicht gefunden"}, 404
+
+    return {"status": "Einnahme gelöscht"}, 200
+
+
+# Einzelne Ausgabe aus SQLite löschen
+@app.route("/api/ausgaben/<int:eintrag_id>", methods=["DELETE"])
+def ausgabe_loeschen(eintrag_id):
+
+    verbindung = datenbank_verbinden()
+
+    ergebnis = verbindung.execute(
+        "DELETE FROM Ausgaben WHERE id = ?",
+        (eintrag_id,)
+    )
+
+    verbindung.commit()
+    anzahl = ergebnis.rowcount
+    verbindung.close()
+
+    if anzahl == 0:
+        return {"fehler": "Ausgabe nicht gefunden"}, 404
+
+    return {"status": "Ausgabe gelöscht"}, 200
+
+
+# Einzelnen Sparbetrag aus SQLite löschen
+@app.route("/api/sparen/<int:eintrag_id>", methods=["DELETE"])
+def sparbetrag_loeschen(eintrag_id):
+
+    verbindung = datenbank_verbinden()
+
+    ergebnis = verbindung.execute(
+        "DELETE FROM Sparen WHERE id = ?",
+        (eintrag_id,)
+    )
+
+    verbindung.commit()
+    anzahl = ergebnis.rowcount
+    verbindung.close()
+
+    if anzahl == 0:
+        return {"fehler": "Sparbetrag nicht gefunden"}, 404
+
+    return {"status": "Sparbetrag gelöscht"}, 200
+
+# Einzelnes Sparziel aus SQLite löschen
+@app.route("/api/sparziele/<int:ziel_id>", methods=["DELETE"])
+def sparziel_loeschen(ziel_id):
+
+    verbindung = datenbank_verbinden()
+
+    ergebnis = verbindung.execute(
+        "DELETE FROM Sparziele WHERE id = ?",
+        (ziel_id,)
+    )
+
+    verbindung.commit()
+    anzahl = ergebnis.rowcount
+    verbindung.close()
+
+    if anzahl == 0:
+        return {"fehler": "Sparziel nicht gefunden"}, 404
+
+    return {"status": "Sparziel gelöscht"}, 200
+
+
 if __name__ == "__main__":
     app.run(debug=True)

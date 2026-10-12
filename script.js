@@ -80,6 +80,8 @@ formular.addEventListener("submit", async function(event) {
                 throw new Error("Speichern fehlgeschlagen");
             }
 
+            await ladeEinnahmen();
+
         } catch (fehler) {
             alert("Die Einnahme konnte nicht gespeichert werden.");
             console.error(fehler);
@@ -108,6 +110,9 @@ formular.addEventListener("submit", async function(event) {
                 throw new Error("Speichern fehlgeschlagen");
             }
 
+
+            await ladeAusgaben();
+
         } catch (fehler) {
             alert("Die Ausgabe konnte nicht gespeichert werden.");
             console.error(fehler);
@@ -134,6 +139,9 @@ formular.addEventListener("submit", async function(event) {
             if (!antwort.ok) {
                 throw new Error("Speichern fehlgeschlagen");
             }
+
+
+            await ladeSparbetraege();
 
         } catch (fehler) {
             alert("Der Sparbetrag konnte nicht gespeichert werden.");
@@ -518,33 +526,6 @@ sparzielFormular.addEventListener("submit", async function(event) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                bezeichnung: zielname,
-                zielbetrag: Math.round(zielbetrag * 100),
-                startbetrag: Math.round(startbetrag * 100),
-                monatlicher_sparbetrag: Math.round(monatlicherSparbetrag * 100)
-            })
-        });
-
-        if (!antwort.ok) {
-            throw new Error("Sparziel konnte nicht gespeichert werden");
-        }
-
-    } catch (fehler) {
-        alert("Das Sparziel konnte nicht gespeichert werden.");
-        console.error(fehler);
-        return;
-    }
-
-    
-
-    // Sparziel dauerhaft in SQLite speichern
-    try {
-        const antwort = await fetch("/api/sparziele", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
                 bezeichnung: bezeichnung,
                 zielbetrag: Math.round(zielbetrag * 100),
                 startbetrag: Math.round(startbetrag * 100),
@@ -553,8 +534,10 @@ sparzielFormular.addEventListener("submit", async function(event) {
         });
 
         if (!antwort.ok) {
-            throw new Error("Speichern fehlgeschlagen");
+            const fehlermeldung = await antwort.json();
+            throw new Error(fehlermeldung.fehler || "Speichern fehlgeschlagen");
         }
+
 
     } catch (fehler) {
         alert("Das Sparziel konnte nicht gespeichert werden.");
@@ -562,21 +545,12 @@ sparzielFormular.addEventListener("submit", async function(event) {
         return;
     }
 
-    // Sparziel zur Liste hinzufügen
-    sparziele.push(neuesSparziel);
 
-    // Aktuelles Sparziel für spätere Berechnungen merken
+
+    await ladeSparziele();
+
+
     aktuellesSparziel = neuesSparziel;
-
-
-    // Sparziel zur Liste hinzufügen
-    sparziele.push(neuesSparziel);
-
-    // Aktuelles Sparziel für spätere Berechnungen merken
-    aktuellesSparziel = neuesSparziel;
-
-    // Karten neu anzeigen
-    zeigeSparziele();
 
     // Formular leeren
     sparzielFormular.reset();
@@ -674,6 +648,47 @@ function zeigeSparziele() {
         karte.appendChild(buttonBereich);
         karte.appendChild(vorschlagBereich);
 
+        
+        // Löschen-Button für Sparziel erstellen
+        const loeschenButton = document.createElement("button");
+        loeschenButton.textContent = "Löschen";
+        loeschenButton.type = "button";
+        loeschenButton.className = "loeschen-button";
+
+        loeschenButton.addEventListener("click", async function() {
+
+            const bestaetigung = confirm(
+                "Möchtest du dieses Sparziel wirklich löschen?"
+            );
+
+            if (!bestaetigung) {
+                return;
+            }
+
+            try {
+                const antwort = await fetch(
+                    "/api/sparziele/" + ziel.id,
+                    { method: "DELETE" }
+                );
+
+                if (!antwort.ok) {
+                    throw new Error("Löschen fehlgeschlagen");
+                }
+
+                // Karte sofort entfernen
+                karte.remove();
+
+                // Sparziele erneut aus SQLite laden
+                await ladeSparziele();
+
+            } catch (fehler) {
+                alert("Das Sparziel konnte nicht gelöscht werden.");
+                console.error(fehler);
+            }
+        });
+
+        karte.appendChild(loeschenButton);
+
 
         liste.appendChild(karte);
     });
@@ -745,6 +760,8 @@ async function ladeEinnahmen() {
         // Übersicht aktualisieren
         aktualisiereUebersicht();
 
+        zeigeEinnahmen();
+
     } catch (fehler) {
         console.error("Fehler beim Laden der Einnahmen:", fehler);
     }
@@ -771,6 +788,8 @@ async function ladeAusgaben() {
 
         // Dashboard und Diagramme aktualisieren
         aktualisiereUebersicht();
+        console.log("Ausgabenliste wird aktualisiert:", ausgaben);
+        zeigeAusgaben();
         aktualisiereKategorieDiagramm();
         aktualisiereMonatsDiagramm(3);
 
@@ -800,6 +819,7 @@ async function ladeSparbetraege() {
 
         // Übersicht aktualisieren
         aktualisiereUebersicht();
+        zeigeSparen();
 
     } catch (fehler) {
         console.error("Fehler beim Laden der Sparbeträge:", fehler);
@@ -808,3 +828,293 @@ async function ladeSparbetraege() {
 
 // Sparbeträge beim Öffnen der Webseite laden
 ladeSparbetraege();
+
+async function ladeSparziele() {
+
+    try {
+        // Sparziele aus der SQLite-Datenbank abrufen
+        const antwort = await fetch("/api/sparziele");
+
+        if (!antwort.ok) {
+            throw new Error("Sparziele konnten nicht geladen werden");
+        }
+
+        const gespeicherteSparziele = await antwort.json();
+
+        // Gespeicherte Daten für unsere Sparzielkarten aufbereiten
+        sparziele = gespeicherteSparziele.map(function(ziel) {
+
+            const restbetrag = Math.max(
+                0,
+                ziel.zielbetrag - ziel.startbetrag
+            );
+
+            const monate = ziel.monatlicherSparbetrag > 0
+                ? Math.ceil(restbetrag / ziel.monatlicherSparbetrag)
+                : 0;
+
+            return {
+                ...ziel,
+                restbetrag: restbetrag,
+                monate: monate
+            };
+        });
+
+        // Gespeicherte Sparzielkarten anzeigen
+        zeigeSparziele();
+
+    } catch (fehler) {
+        console.error("Fehler beim Laden der Sparziele:", fehler);
+    }
+}
+
+// Sparziele beim Öffnen der Webseite laden
+ladeSparziele();
+
+
+function zeigeEinnahmen() {
+
+    const liste = document.getElementById("einnahmen-liste");
+
+    if (!liste) {
+        return;
+    }
+
+    liste.innerHTML = "";
+
+    if (einnahmen.length === 0) {
+        liste.textContent = "Noch keine Einnahmen vorhanden.";
+        return;
+    }
+
+    einnahmen.forEach(function(eintrag) {
+
+        const karte = document.createElement("div");
+        karte.className = "eintrag-karte";
+
+        const information = document.createElement("div");
+
+        const kategorie = document.createElement("strong");
+        kategorie.textContent = eintrag.kategorie;
+
+        const details = document.createElement("p");
+        details.textContent =
+            eintrag.datum + " · " + formatiereEuro(eintrag.betrag);
+
+        
+information.appendChild(kategorie);
+information.appendChild(details);
+
+// Löschen-Button erstellen
+const loeschenButton = document.createElement("button");
+loeschenButton.textContent = "Löschen";
+loeschenButton.type = "button";
+loeschenButton.className = "loeschen-button";
+
+// Sicherheitsabfrage und Löschen
+loeschenButton.addEventListener("click", async function() {
+
+    const bestaetigung = confirm(
+        "Möchtest du diese Einnahme wirklich löschen?"
+    );
+
+    if (!bestaetigung) {
+        return;
+    }
+
+    try {
+        const antwort = await fetch(
+            "/api/einnahmen/" + eintrag.id,
+            { method: "DELETE" }
+        );
+
+        if (!antwort.ok) {
+            throw new Error("Löschen fehlgeschlagen");
+        }
+
+        // Einnahmen erneut aus SQLite laden
+        await ladeEinnahmen();
+
+    } catch (fehler) {
+        alert("Die Einnahme konnte nicht gelöscht werden.");
+        console.error(fehler);
+    }
+});
+
+karte.appendChild(information);
+karte.appendChild(loeschenButton);
+liste.appendChild(karte);
+
+    });
+}
+
+
+function zeigeAusgaben() {
+
+    console.log("zeigeAusgaben wurde aufgerufen");
+
+    const liste = document.getElementById("ausgaben-liste");
+
+    if (!liste) {
+        return;
+    }
+
+    liste.innerHTML = "";
+
+    if (ausgaben.length === 0) {
+        liste.textContent = "Noch keine Ausgaben vorhanden.";
+        return;
+    }
+
+    ausgaben.forEach(function(eintrag) {
+
+        const karte = document.createElement("div");
+        karte.className = "eintrag-karte";
+
+        const information = document.createElement("div");
+
+        const kategorie = document.createElement("strong");
+        kategorie.textContent = eintrag.kategorie;
+
+        const details = document.createElement("p");
+        details.textContent =
+            eintrag.datum + " · " + formatiereEuro(eintrag.betrag);
+
+        information.appendChild(kategorie);
+        information.appendChild(details);
+
+        // Löschen-Button erstellen
+        const loeschenButton = document.createElement("button");
+        loeschenButton.textContent = "Löschen";
+        loeschenButton.type = "button";
+        loeschenButton.className = "loeschen-button";
+
+        // Sicherheitsabfrage und Löschen
+        loeschenButton.addEventListener("click", async function() {
+
+            const bestaetigung = confirm(
+                "Möchtest du diese Ausgabe wirklich löschen?"
+            );
+
+            if (!bestaetigung) {
+                return;
+            }
+
+            try {
+                const antwort = await fetch(
+                    "/api/ausgaben/" + eintrag.id,
+                    { method: "DELETE" }
+                );
+
+                if (!antwort.ok) {
+                    throw new Error("Löschen fehlgeschlagen");
+                }
+
+            
+                // Gelöschte Karte sofort aus der Anzeige entfernen
+
+                karte.remove();
+
+
+
+                // Ausgaben erneut aus SQLite laden
+
+                await ladeAusgaben();
+
+
+            } catch (fehler) {
+                alert("Die Ausgabe konnte nicht gelöscht werden.");
+                console.error(fehler);
+            }
+        });
+
+        karte.appendChild(information);
+        karte.appendChild(loeschenButton);
+
+        liste.appendChild(karte);
+    });
+}
+
+
+function zeigeSparen() {
+
+    const liste = document.getElementById("sparen-liste");
+
+    if (!liste) {
+        return;
+    }
+
+    // Bisherige Liste leeren
+    liste.innerHTML = "";
+
+    if (sparen.length === 0) {
+        liste.textContent = "Noch keine Sparbeträge vorhanden.";
+        return;
+    }
+
+    sparen.forEach(function(eintrag) {
+
+        // Karte erstellen
+        const karte = document.createElement("div");
+        karte.className = "eintrag-karte";
+
+        const information = document.createElement("div");
+
+        const kategorie = document.createElement("strong");
+        kategorie.textContent = eintrag.kategorie;
+
+        const details = document.createElement("p");
+        details.textContent =
+            eintrag.datum + " · " + formatiereEuro(eintrag.betrag);
+
+        information.appendChild(kategorie);
+        information.appendChild(details);
+
+        // Löschen-Button erstellen
+        const loeschenButton = document.createElement("button");
+        loeschenButton.textContent = "Löschen";
+        loeschenButton.type = "button";
+        loeschenButton.className = "loeschen-button";
+
+        // Löschen-Button anklickbar machen
+        loeschenButton.addEventListener("click", async function() {
+
+            const bestaetigung = confirm(
+                "Möchtest du diesen Sparbetrag wirklich löschen?"
+            );
+
+            if (!bestaetigung) {
+                return;
+            }
+
+            try {
+                // Sparbetrag aus SQLite löschen
+                const antwort = await fetch(
+                    "/api/sparen/" + eintrag.id,
+                    { method: "DELETE" }
+                );
+
+                if (!antwort.ok) {
+                    throw new Error("Löschen fehlgeschlagen");
+                }
+
+                // Karte sofort aus der Anzeige entfernen
+                karte.remove();
+
+                // Sparbeträge erneut aus SQLite laden
+                await ladeSparbetraege();
+
+            } catch (fehler) {
+                alert("Der Sparbetrag konnte nicht gelöscht werden.");
+                console.error(fehler);
+            }
+        });
+
+        // Karte zusammensetzen
+        karte.appendChild(information);
+        karte.appendChild(loeschenButton);
+
+        // Karte zur Liste hinzufügen
+        liste.appendChild(karte);
+    });
+}
