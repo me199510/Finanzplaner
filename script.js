@@ -51,15 +51,6 @@ formular.addEventListener("submit", async function(event) {
         return;
     }
 
-    // Eintrag erstellen
-    const eintrag = {
-        betrag: betrag,
-        kategorie: kategorie,
-        datum: datum
-
-    };
-
-    
     // Einnahmen dauerhaft in SQLite speichern
     if (typ === "einnahme") {
 
@@ -150,15 +141,6 @@ formular.addEventListener("submit", async function(event) {
         }
     }
 
-
-    // Eintrag zuordnen
-    if (typ === "einnahme") {
-        einnahmen.push(eintrag);
-    } else if (typ === "ausgabe") {
-        ausgaben.push(eintrag);
-    } else if (typ === "sparen") {
-        sparen.push(eintrag);
-    }
 
     // Übersicht aktualisieren
     aktualisiereUebersicht();
