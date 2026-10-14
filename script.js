@@ -1100,3 +1100,4 @@ function zeigeSparen() {
         liste.appendChild(karte);
     });
 }
+// Teständerung für die mündliche Prüfung
